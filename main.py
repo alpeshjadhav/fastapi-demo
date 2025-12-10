@@ -46,7 +46,7 @@ def home():
 @app.get("/products")
 def get_all_products(db: Session = Depends(get_db)):
     db_products = db.query(database_models.Product).all()
-    return products
+    return db_products
 
 @app.get("/products/{id}")
 def get_all_product_by_id(id: int):
