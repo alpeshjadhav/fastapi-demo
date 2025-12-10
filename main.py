@@ -1,7 +1,19 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from models import Product
+from database import session, engine
+from sqlalchemy.orm import Session
+import database_models
 
 app = FastAPI()
+
+database_models.Base.metadata.create_all(bind=engine)
+
+def get_db():
+    db = session()
+    try:
+        yield db
+    finally:    
+        db.close
 
 products = [
     Product(id=1, name="iPhone 15", description="Apple flagship smartphone", price=999, quantity=20),
@@ -16,13 +28,24 @@ products = [
     Product(id=10, name="Nothing Phone 2", description="Unique transparent smartphone", price=599, quantity=16),
 ]
 
+def init_db():
+    db = session()
+    count = db.query(database_models.Product).count
+
+    if count == 0:
+        for product in products:
+            db.add(database_models.Product(**product.model_dump()))
+    db.commit()
+
+init_db()
 
 @app.get("/")
 def home():
     return {"message": "Hello FastAPI!"}
 
 @app.get("/products")
-def get_all_products():
+def get_all_products(db: Session = Depends(get_db)):
+    db_products = db.query(database_models.Product).all()
     return products
 
 @app.get("/products/{id}")
